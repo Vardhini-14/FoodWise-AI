@@ -69,17 +69,17 @@ a:hover {
 
 /* Specific style for the hero button to make it stand out more */
 .hero-cta-button {
-    background-color: #EF5350; /* Light Red */
-    color: var(--white); /* White text for contrast */
+    background-color: var(--secondary-color); /* Use secondary color for hero button */
+    color: var(--text-color); /* Darker text for contrast */
     padding: 20px 40px;
     font-size: 1.3rem;
     border: 2px solid var(--white); /* Add a subtle white border */
 }
 
 .hero-cta-button:hover {
-    background-color: #E53935; /* Slightly darker red on hover */
+    background-color: #FFC107; /* Slightly darker secondary on hover */
     color: var(--white); /* White text on hover */
-    border-color: #FFCDD2; /* Change border color on hover */
+    border-color: var(--secondary-color); /* Change border color on hover */
 }
 
 
@@ -299,31 +299,14 @@ a:hover {
     margin-bottom: 30px;
 }
 
-/* Styling for select dropdowns and textareas in forms */
-.meal-planning-form select,
-.meal-planning-form textarea,
-.swap-suggestion select {
+.meal-planning-form textarea {
     padding: 15px;
     border: 1px solid #ddd;
     border-radius: var(--border-radius);
     font-size: 1rem;
-    min-height: 50px; /* Default height for selects */
+    min-height: 120px;
     resize: vertical;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-    background-color: var(--white);
-    color: var(--text-color);
-    appearance: none; /* Remove default arrow */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2C114.7L146.2%2C255.5L5.4%2C114.7H287z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
-    background-repeat: no-repeat;
-    background-position: right 15px center;
-    background-size: 12px;
-    cursor: pointer;
-}
-
-.meal-planning-form textarea {
-    min-height: 120px; /* Specific height for meal planning textarea */
 }
 
 .meal-plan-output {
@@ -408,115 +391,6 @@ a:hover {
     font-weight: 600;
 }
 
-.allergen-management-section {
-    padding: 60px 20px;
-    background-color: #f9f9f9;
-    border-bottom: 1px solid #eee;
-    text-align: center;
-}
-
-.allergen-management-content {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.allergen-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.allergen-form .input-group {
-    text-align: left;
-}
-
-.allergen-form label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #333;
-}
-
-.allergen-form select,
-.allergen-form textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1em;
-    box-sizing: border-box; /* Ensures padding doesn't increase width */
-}
-
-.allergen-form select[multiple] {
-    min-height: 120px; /* Adjust height for multi-select */
-}
-
-.current-allergens-display {
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #e9ffe9; /* Light green background for display */
-    border: 1px solid #c8e6c9;
-    border-radius: 8px;
-    text-align: left;
-    color: #388e3c; /* Darker green text */
-    font-weight: bold;
-}
-
-.current-allergens-display .placeholder-text {
-    color: #888;
-    font-style: italic;
-    font-weight: normal;
-}
-
-/* Common CTA Button (if not already defined) */
-.cta-button {
-    background-color: #4CAF50; /* Green */
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.1em;
-    transition: background-color 0.3s ease;
-    align-self: center; /* Center the button in flex column */
-    width: fit-content; /* Make button size to content */
-}
-
-.cta-button:hover {
-    background-color: #45a049;
-}
-
-.allergy-alert-tag {
-    background-color: #ffe0e0; /* Lighter red background */
-    color: #d32f2f; /* Darker red text */
-    padding: 8px 12px;
-    border-radius: 5px;
-    font-size: 0.9em;
-    font-weight: bold;
-    margin: 10px 15px 15px; /* Adjust margin to fit within card */
-    display: flex;
-    align-items: center;
-    gap: 8px; /* Space between icon and text */
-}
-
-.allergy-alert-tag i {
-    color: #d32f2f;
-}
-
-/* Basic styling for no results message */
-.no-results {
-    text-align: center;
-    grid-column: 1 / -1; /* Make it span all columns in the grid */
-    font-size: 1.2em;
-    color: #777;
-    padding: 30px;
-}
-
 .allergy-alert-tag {
     background-color: #ffe0b2; /* Light orange for alert */
     color: #e65100; /* Dark orange text */
@@ -587,8 +461,8 @@ a:hover {
 }
 
 .bmi-result {
-    margin: 35px;
-    padding: 25px;
+    margin-top: 25px;
+    padding: 15px;
     border-radius: var(--border-radius);
     background-color: #e8f5e9; /* Light green */
     border: 1px solid #c8e6c9;
@@ -622,7 +496,7 @@ a:hover {
 }
 
 .nutritional-tips-list li {
-    margin: 12px;
+    margin-bottom: 12px;
     font-size: 1.05rem;
     color: var(--light-text-color);
     display: flex;
@@ -631,7 +505,7 @@ a:hover {
 
 .nutritional-tips-list li i {
     color: var(--primary-color);
-    margin: 12px;
+    margin-right: 12px;
     font-size: 1.3rem; /* Slightly larger icon */
     flex-shrink: 0; /* Prevent icon from shrinking */
 }
@@ -698,9 +572,16 @@ a:hover {
     margin-bottom: 20px;
 }
 
-.swap-suggestion select { /* Specific styling for swap select */
+.swap-suggestion textarea {
     width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    min-height: 80px;
+    resize: vertical;
     margin-bottom: 20px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .genai-swap-output {

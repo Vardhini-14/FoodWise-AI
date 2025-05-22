@@ -1,37 +1,10 @@
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const burger = document.querySelector('.burger');
     const nav = document.querySelector('.nav-links');
     const navLinks = document.querySelectorAll('.nav-links li');
     const loadingOverlay = document.getElementById('loadingOverlay');
 
-    // Auth Elements
-    const authOverlay = document.getElementById('authOverlay');
-    const mainContent = document.getElementById('mainContent');
-    const authForm = document.getElementById('authForm');
-    const authEmailInput = document.getElementById('authEmail');
-    const authPasswordInput = document.getElementById('authPassword');
-    const authSubmitButton = document.getElementById('authSubmitButton');
-    const authSwitchLink = document.getElementById('authSwitchLink');
-    const authTitle = document.getElementById('authTitle');
-    const authSubtitle = document.getElementById('authSubtitle');
-    const authError = document.getElementById('authError');
-
-    let isLoginMode = true; // State to track if we are in login or signup mode
-
-    // --- Firebase Initialization and Auth Listener ---
-    // These are exposed globally from the script tag in index.html
-    const app = window.firebaseApp;
-    const auth = window.firebaseAuth;
-    const db = window.firebaseDb;
-    const appId = window.currentAppId;
-    const initialAuthToken = window.initialAuthToken;
-
-    // Firebase Auth methods
-    const { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } = window.firebaseAuth;
-    const { doc, getDoc, setDoc, collection, query, where, addDoc, getDocs, updateDoc, deleteDoc, onSnapshot } = window.firestore;
-
-
-    // Function to show/hide loading overlay
+    // --- Helper function to show/hide loading overlay ---
     function showLoading() {
         if (loadingOverlay) {
             loadingOverlay.classList.add('visible');
@@ -44,141 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Function to show main content and hide auth overlay
-    function showMainContent() {
-        console.log("showMainContent: Starting transition.");
-
-        // 1. Make main content display: block immediately to allow transitions
-        mainContent.style.display = 'block';
-        // 2. Remove 'hidden' class and add 'visible' class to trigger its showing transition
-        mainContent.classList.remove('hidden');
-        mainContent.classList.add('visible');
-
-        // 3. Add 'hidden' class to auth overlay to trigger its hiding transition
-        authOverlay.classList.add('hidden');
-        authOverlay.classList.remove('active'); // Remove active for consistency
-
-        // 4. After auth overlay's transition, set its display to 'none'
-        setTimeout(() => {
-            authOverlay.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Allow scrolling on main content
-            console.log("showMainContent: Auth overlay hidden, main content visible.");
-        }, 500); // Matches auth-overlay's transition duration
-    }
-
-    // Function to show auth overlay and hide main content
-    function showAuthOverlay() {
-        console.log("showAuthOverlay: Starting transition.");
-
-        // 1. Make auth overlay display: flex immediately to allow transitions
-        authOverlay.style.display = 'flex';
-        // 2. Remove 'hidden' class and add 'active' class to trigger its showing transition
-        authOverlay.classList.remove('hidden');
-        authOverlay.classList.add('active');
-
-        // 3. Add 'hidden' class to main content to trigger its hiding transition
-        mainContent.classList.add('hidden');
-        mainContent.classList.remove('visible'); // Ensure it's not stuck in visible state
-
-        // 4. After main content's transition, set its display to 'none'
-        setTimeout(() => {
-            mainContent.style.display = 'none';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling on auth screen
-            console.log("showAuthOverlay: Main content hidden, auth overlay visible.");
-        }, 1000); // Matches main-content-wrapper's transition duration
-    }
-
-    // Auth state listener
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            console.log("User is signed in:", user.uid);
-            showMainContent();
-            // You can now fetch/save user-specific data using user.uid
-            // Example: const userDocRef = doc(db, "artifacts", appId, "users", user.uid, "profile", "data");
-        } else {
-            console.log("No user is signed in.");
-            showAuthOverlay(); // Use the new function
-        }
-        hideLoading(); // Hide loading after auth state is determined
-    });
-
-    // Initial Firebase sign-in (anonymous or custom token)
-    // This should be called after the onAuthStateChanged listener is set up
-    // to ensure the UI updates correctly based on the initial auth state.
-    // The DOMContentLoaded listener ensures the DOM elements are ready.
-    window.initializeFirebaseAuth(); // This function is defined in index.html script tag
-
-    // --- Auth Form Logic ---
-    authSwitchLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        isLoginMode = !isLoginMode;
-        authError.textContent = ''; // Clear previous errors
-
-        if (isLoginMode) {
-            authTitle.textContent = 'Welcome Back!';
-            authSubtitle.textContent = 'Sign in to continue your health journey.';
-            authSubmitButton.textContent = 'Login';
-            authSwitchLink.textContent = 'Sign Up';
-        } else {
-            authTitle.textContent = 'Join FoodWise AI!';
-            authSubtitle.textContent = 'Create an account to get started.';
-            authSubmitButton.textContent = 'Sign Up';
-            authSwitchLink.textContent = 'Login';
-        }
-    });
-
-    authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = authEmailInput.value;
-        const password = authPasswordInput.value;
-        authError.textContent = ''; // Clear previous errors
-        showLoading();
-
-        try {
-            if (isLoginMode) {
-                await signInWithEmailAndPassword(auth, email, password);
-                console.log("User logged in successfully!");
-            } else {
-                await createUserWithEmailAndPassword(auth, email, password);
-                console.log("User signed up successfully!");
-                // Optionally, save initial user profile data to Firestore here
-                const userId = auth.currentUser.uid;
-                await setDoc(doc(db, "artifacts", appId, "users", userId, "profile", "data"), {
-                    email: email,
-                    createdAt: new Date().toISOString(),
-                    // Add other default profile data
-                });
-            }
-        } catch (error) {
-            console.error("Authentication error:", error.code, error.message);
-            switch (error.code) {
-                case 'auth/invalid-email':
-                    authError.textContent = 'Invalid email address format.';
-                    break;
-                case 'auth/user-disabled':
-                    authError.textContent = 'Your account has been disabled.';
-                    break;
-                case 'auth/user-not-found':
-                    authError.textContent = 'No user found with this email.';
-                    break;
-                case 'auth/wrong-password':
-                    authError.textContent = 'Incorrect password.';
-                    break;
-                case 'auth/email-already-in-use':
-                    authError.textContent = 'This email is already in use. Try logging in.';
-                    break;
-                case 'auth/weak-password':
-                    authError.textContent = 'Password should be at least 6 characters.';
-                    break;
-                default:
-                    authError.textContent = 'Authentication failed. Please try again.';
-                    break;
-            }
-        } finally {
-            hideLoading();
-        }
-    });
-
     // --- Mobile Navigation Toggle ---
     if (burger && nav && navLinks) {
         burger.addEventListener('click', () => {
@@ -188,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (link.style.animation) {
                     link.style.animation = '';
                 } else {
-                    link.style.animation = navLinkFade 0.5s ease forwards ${index / 7 + 0.3}s;
+                    link.style.animation = `navLinkFade 0.5s ease forwards ${index / 7 + 0.3}s`;
                 }
             });
             burger.classList.toggle('toggle');
@@ -235,150 +73,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Feature Implementations ---
 
     // 1. BMI Calculator
-    // script.js (Relevant parts for display logic)
-
-document.addEventListener('DOMContentLoaded', () => {
-    const authOverlay = document.getElementById('authOverlay');
-    const mainContent = document.getElementById('mainContent');
-    const authForm = document.getElementById('authForm');
-    const authSubmitButton = document.getElementById('authSubmitButton');
-    const authTitle = document.getElementById('authTitle');
-    const toggleAuthMode = document.getElementById('toggleAuthMode');
-    const toggleAuthText = document.getElementById('toggleAuthText');
-    const authError = document.getElementById('authError');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const loadingOverlay = document.getElementById('loadingOverlay'); // Make sure you have this
-
-
-    // --- BMI Calculator Elements (already present in your code snippet) ---
+    const calculateBmiButton = document.getElementById('calculateBmiButton');
     const weightInput = document.getElementById('weight');
     const heightInput = document.getElementById('height');
-    const calculateBmiButton = document.getElementById('calculateBmiButton');
     const bmiResultDiv = document.getElementById('bmiResult');
-    // --- End BMI Calculator Elements ---
 
+    if (calculateBmiButton) {
+        calculateBmiButton.addEventListener('click', () => {
+            const weight = parseFloat(weightInput.value);
+            const height = parseFloat(heightInput.value); // Height in cm
 
-    let isLoginMode = true; // State to track if it's login or signup
+            bmiResultDiv.className = 'bmi-result'; // Reset class for styling
 
-    // Initially hide main content and show authentication overlay
-    mainContent.classList.remove('visible'); // Ensure it's not visible initially
-    authOverlay.classList.remove('hidden'); // Ensure it's visible initially
-
-
-    // Function to show/hide the loading overlay
-    function showLoading() {
-        loadingOverlay.classList.add('visible');
-    }
-
-    function hideLoading() {
-        loadingOverlay.classList.remove('visible');
-    }
-
-    // --- AUTHENTICATION LOGIC ---
-    toggleAuthMode.addEventListener('click', (e) => {
-        e.preventDefault();
-        isLoginMode = !isLoginMode;
-        if (isLoginMode) {
-            authTitle.textContent = 'Login';
-            authSubmitButton.textContent = 'Login';
-            toggleAuthText.textContent = "Don't have an account?";
-            toggleAuthMode.textContent = 'Sign Up';
-        } else {
-            authTitle.textContent = 'Sign Up';
-            authSubmitButton.textContent = 'Sign Up';
-            toggleAuthText.textContent = 'Already have an account?';
-            toggleAuthMode.textContent = 'Login';
-        }
-        authError.textContent = ''; // Clear any previous errors
-    });
-
-    authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        showLoading(); // Show loading spinner
-
-        const email = emailInput.value;
-        const password = passwordInput.value;
-
-        try {
-            if (isLoginMode) {
-                // Simulate login for demonstration
-                // In a real app, you'd use Firebase: signInWithEmailAndPassword(auth, email, password);
-                console.log(`Attempting to log in with ${email} and ${password}`);
-                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-                if (email === 'test@example.com' && password === 'password123') {
-                    console.log('Login successful!');
-                    authError.textContent = '';
-                    // THIS IS THE KEY PART FOR DISPLAY:
-                    authOverlay.classList.add('hidden');
-                    mainContent.classList.add('visible');
-                } else {
-                    throw new Error('Invalid email or password. (Simulated)');
-                }
-
-            } else {
-                // Simulate signup for demonstration
-                // In a real app, you'd use Firebase: createUserWithEmailAndPassword(auth, email, password);
-                console.log(`Attempting to sign up with ${email} and ${password}`);
-                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-                 if (email && password.length >= 6) { // Basic simulated validation
-                    console.log('Sign up successful!');
-                    authError.textContent = 'Account created! Please log in.';
-                    isLoginMode = true; // Switch to login mode after signup
-                    authTitle.textContent = 'Login';
-                    authSubmitButton.textContent = 'Login';
-                    toggleAuthText.textContent = "Don't have an account?";
-                    toggleAuthMode.textContent = 'Sign Up';
-                } else {
-                    throw new Error('Invalid signup details. (Simulated)');
-                }
+            if (isNaN(weight) || isNaN(height) || weight <= 0 || height <= 0) {
+                bmiResultDiv.textContent = 'Please enter valid positive numbers for weight and height.';
+                bmiResultDiv.classList.add('error');
+                return;
             }
-        } catch (error) {
-            console.error('Auth error:', error.message);
-            authError.textContent = error.message;
-        } finally {
-            hideLoading(); // Hide loading spinner regardless of success or failure
-        }
-    });
 
-    // --- BMI CALCULATION LOGIC (from your image) ---
-    calculateBmiButton.addEventListener('click', () => {
-        const weight = parseFloat(weightInput.value);
-        const height = parseFloat(heightInput.value);
+            // BMI calculation: weight (kg) / (height (m))^2
+            const heightInMeters = height / 100;
+            const bmi = weight / (heightInMeters * heightInMeters);
+            const roundedBmi = bmi.toFixed(2);
 
-        if (isNaN(weight) || isNaN(height) || weight <= 0 || height <= 0) {
-            bmiResultDiv.textContent = 'Please enter valid positive numbers for weight and height.';
-            bmiResultDiv.className = 'bmi-result error'; // Reset classes and add error
-            return;
-        }
+            let category = '';
+            if (bmi < 18.5) {
+                category = 'Underweight';
+                bmiResultDiv.classList.add('warning');
+            } else if (bmi >= 18.5 && bmi < 24.9) {
+                category = 'Normal weight';
+                bmiResultDiv.classList.add('success');
+            } else if (bmi >= 25 && bmi < 29.9) {
+                category = 'Overweight';
+                bmiResultDiv.classList.add('warning');
+            } else {
+                category = 'Obesity';
+                bmiResultDiv.classList.add('error');
+            }
 
-        const heightInMeters = height / 100;
-        const bmi = weight / (heightInMeters * heightInMeters);
-        const roundedBmi = bmi.toFixed(2);
+            bmiResultDiv.textContent = `Your BMI: ${roundedBmi} (${category})`;
+        });
+    }
 
-        let category = '';
-        if (bmi < 18.5) {
-            category = 'Underweight';
-            bmiResultDiv.className = 'bmi-result warning';
-        } else if (bmi >= 18.5 && bmi < 24.9) {
-            category = 'Normal weight';
-            bmiResultDiv.className = 'bmi-result success';
-        } else if (bmi >= 25 && bmi < 29.9) {
-            category = 'Overweight';
-            bmiResultDiv.className = 'bmi-result warning';
-        } else {
-            category = 'Obesity';
-            bmiResultDiv.className = 'bmi-result error';
-        }
-
-        bmiResultDiv.textContent = `Your BMI: <span class="math-inline">\{roundedBmi\} \(</span>{category})`;
-    });
-
-    // Other event listeners and functionalities for meal planning, recipes, etc.
-    // ... (your existing code for other sections) ...
-});
     // 2. Recipe Finder (with dummy data and filtering)
-
     const recipeSearchInput = document.getElementById('recipeSearchInput');
     const dietaryFilter = document.getElementById('dietaryFilter');
     const allergenFilter = document.getElementById('allergenFilter');
@@ -392,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 1,
             name: "Mediterranean Quinoa Salad",
             description: "A light and refreshing salad packed with protein and fresh vegetables.",
-            image: "https://placehold.co/400x250/A7D9C6/333333?text=Quinoa+Salad",
+            image: "salad.jpg", // Placeholder
             tags: ["Vegetarian", "Gluten-Free", "Healthy", "Lunch"],
             allergens: []
         },
@@ -400,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 2,
             name: "Spicy Chicken Stir-fry",
             description: "Quick, flavorful, and loaded with vibrant veggies for a balanced meal.",
-            image: "https://placehold.co/400x250/C8E6C9/333333?text=Chicken+Stir-fry",
+            image: "https://placehold.co/400x250/FFD54F/333333?text=Chicken+Stir-fry", // Placeholder
             tags: ["Dinner", "Healthy", "High-Protein"],
             allergens: ["Soy"]
         },
@@ -408,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 3,
             name: "Berry Almond Smoothie Bowl",
             description: "Start your day with this nutrient-dense and delicious breakfast bowl.",
-            image: "https://placehold.co/400x250/DCE775/333333?text=Smoothie+Bowl",
+            image: "https://placehold.co/400x250/FF6F61/ffffff?text=Smoothie+Bowl", // Placeholder
             tags: ["Breakfast", "Vegan", "Gluten-Free", "Healthy"],
             allergens: ["Tree Nuts"]
         },
@@ -416,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 4,
             name: "Hearty Lentil Soup",
             description: "A comforting and protein-rich soup, perfect for any season.",
-            image: "https://placehold.co/400x250/FFAB91/333333?text=Lentil+Soup",
+            image: "https://placehold.co/400x250/8BC34A/ffffff?text=Lentil+Soup", // Placeholder
             tags: ["Vegan", "Gluten-Free", "Soup", "Healthy"],
             allergens: []
         },
@@ -424,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 5,
             name: "Baked Salmon with Asparagus",
             description: "Simple yet elegant, a healthy meal bursting with omega-3s.",
-            image: "https://placehold.co/400x250/B3E5FC/333333?text=Salmon+Asparagus",
+            image: "https://placehold.co/400x250/2196F3/ffffff?text=Salmon+Asparagus", // Placeholder
             tags: ["Dinner", "Healthy", "Fish"],
             allergens: ["Fish"]
         },
@@ -432,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 6,
             name: "Creamy Coconut Vegetable Curry",
             description: "A flavorful and wholesome plant-based meal for the whole family.",
-            image: "https://placehold.co/400x250/FFCC80/333333?text=Veg+Curry",
+            image: "https://placehold.co/400x250/FF9800/ffffff?text=Veg+Curry", // Placeholder
             tags: ["Vegan", "Dinner", "Spicy"],
             allergens: []
         },
@@ -440,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 7,
             name: "Healthy Breakfast Burrito",
             description: "Packed with eggs, beans, and veggies for a great start to your day.",
-            image: "https://placehold.co/400x250/A7D9C6/333333?text=Breakfast+Burrito",
+            image: "https://placehold.co/400x250/795548/ffffff?text=Breakfast+Burrito", // Placeholder
             tags: ["Breakfast", "Vegetarian"],
             allergens: ["Eggs"]
         },
@@ -448,15 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 8,
             name: "Gourmet Avocado Toast",
             description: "Simple, yet satisfying and loaded with healthy fats.",
-            image: "https://placehold.co/400x250/C8E6C9/333333?text=Avocado+Toast",
+            image: "https://placehold.co/400x250/CDDC39/333333?text=Avocado+Toast", // Placeholder
             tags: ["Breakfast", "Vegetarian", "Quick"],
-            allergens: ["Wheat"]
+            allergens: ["Wheat"] // Assuming bread contains wheat
         },
         {
             id: 9,
             name: "Light Chicken Salad Wraps",
             description: "Fresh and easy for a quick lunch or dinner.",
-            image: "https://placehold.co/400x250/DCE775/333333?text=Chicken+Wraps",
+            image: "https://placehold.co/400x250/9C27B0/ffffff?text=Chicken+Wraps", // Placeholder
             tags: ["Lunch", "High-Protein"],
             allergens: []
         },
@@ -464,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 10,
             name: "Spinach and Feta Stuffed Chicken",
             description: "Juicy chicken breast stuffed with a flavorful spinach and feta mixture.",
-            image: "https://placehold.co/400x250/FFAB91/333333?text=Stuffed+Chicken",
+            image: "https://placehold.co/400x250/E91E63/ffffff?text=Stuffed+Chicken", // Placeholder
             tags: ["Dinner", "High-Protein"],
             allergens: ["Dairy"]
         },
@@ -472,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 11,
             name: "Vegan Chickpea & Spinach Curry",
             description: "A rich and flavorful plant-based curry that's easy to make.",
-            image: "https://placehold.co/400x250/B3E5FC/333333?text=Chickpea+Curry",
+            image: "https://placehold.co/400x250/00BCD4/ffffff?text=Chickpea+Curry", // Placeholder
             tags: ["Vegan", "Dinner", "Quick"],
             allergens: []
         },
@@ -480,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 12,
             name: "Grilled Portobello Mushroom Burgers",
             description: "A hearty and satisfying vegetarian burger alternative.",
-            image: "https://placehold.co/400x250/FFCC80/333333?text=Mushroom+Burger",
+            image: "https://placehold.co/400x250/4CAF50/ffffff?text=Mushroom+Burger", // Placeholder
             tags: ["Vegetarian", "Grill", "Lunch"],
             allergens: []
         },
@@ -488,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 13,
             name: "Lemon Herb Roasted Chicken and Veggies",
             description: "A simple sheet pan dinner bursting with fresh flavors.",
-            image: "https://placehold.co/400x250/A7D9C6/333333?text=Roasted+Chicken",
+            image: "https://placehold.co/400x250/FFEB3B/333333?text=Roasted+Chicken", // Placeholder
             tags: ["Dinner", "Healthy", "One-Pan"],
             allergens: []
         },
@@ -496,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 14,
             name: "Sweet Potato and Black Bean Chili",
             description: "A warming and nutritious chili that's perfect for a crowd.",
-            image: "https://placehold.co/400x250/C8E6C9/333333?text=Sweet+Potato+Chili",
+            image: "https://placehold.co/400x250/7B1FA2/ffffff?text=Sweet+Potato+Chili", // Placeholder
             tags: ["Vegan", "Dinner", "Comfort Food"],
             allergens: []
         },
@@ -504,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 15,
             name: "Quinoa Stuffed Bell Peppers",
             description: "Colorful bell peppers filled with nutritious quinoa and vegetables.",
-            image: "https://placehold.co/400x250/DCE775/333333?text=Stuffed+Peppers",
+            image: "https://placehold.co/400x250/F44336/ffffff?text=Stuffed+Peppers", // Placeholder
             tags: ["Vegetarian", "Gluten-Free", "Dinner"],
             allergens: []
         },
@@ -512,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 16,
             name: "Broccoli Cheddar Soup",
             description: "A creamy and comforting soup, packed with broccoli goodness.",
-            image: "https://placehold.co/400x250/FFAB91/333333?text=Broccoli+Soup",
+            image: "https://placehold.co/400x250/FFC107/333333?text=Broccoli+Soup", // Placeholder
             tags: ["Vegetarian", "Soup"],
             allergens: ["Dairy"]
         },
@@ -520,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 17,
             name: "Shrimp Scampi with Zucchini Noodles",
             description: "A light and flavorful seafood dish, low in carbs.",
-            image: "https://placehold.co/400x250/B3E5FC/333333?text=Shrimp+Scampi",
+            image: "https://placehold.co/400x250/009688/ffffff?text=Shrimp+Scampi", // Placeholder
             tags: ["Dinner", "Low-Carb", "Seafood"],
             allergens: ["Shellfish"]
         },
@@ -528,24 +265,25 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 18,
             name: "Overnight Oats with Chia Seeds",
             description: "Prepare this healthy breakfast the night before for a quick morning.",
-            image: "https://placehold.co/400x250/FFCC80/333333?text=Overnight+Oats",
+            image: "https://placehold.co/400x250/9E9E9E/ffffff?text=Overnight+Oats", // Placeholder
             tags: ["Breakfast", "Vegan", "Gluten-Free", "Quick"],
             allergens: []
         }
     ];
 
     let currentRecipeStartIndex = 0;
-    const recipesPerPage = 6;
-    let currentFilteredRecipes = [];
+    const recipesPerPage = 6; // Number of recipes to show initially and on 'Load More'
+    let currentFilteredRecipes = []; // To store the currently filtered recipes
 
     function renderRecipes(recipesToDisplay) {
-        recipeResultsGrid.innerHTML = '';
+        recipeResultsGrid.innerHTML = ''; // Clear previous results
         if (recipesToDisplay.length === 0) {
             recipeResultsGrid.innerHTML = '<p class="placeholder-text">No recipes found matching your criteria.</p>';
             loadMoreRecipesButton.style.display = 'none';
             return;
         }
 
+        // Determine which recipes to display based on currentRecipeStartIndex and recipesPerPage
         const visibleRecipes = recipesToDisplay.slice(0, currentRecipeStartIndex + recipesPerPage);
 
         visibleRecipes.forEach(recipe => {
@@ -556,14 +294,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3>${recipe.name}</h3>
                 <p>${recipe.description}</p>
                 <div class="recipe-tags">
-                    ${recipe.tags.map(tag => <span class="tag">${tag}</span>).join('')}
+                    ${recipe.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                 </div>
-                ${recipe.allergens.length > 0 ? <div class="allergy-alert-tag"><i class="fas fa-exclamation-triangle"></i> Allergens: ${recipe.allergens.join(', ')}</div> : ''}
+                ${recipe.allergens.length > 0 ? `<div class="allergy-alert-tag"><i class="fas fa-exclamation-triangle"></i> Allergens: ${recipe.allergens.join(', ')}</div>` : ''}
                 <a href="#" class="view-recipe-button">View Recipe</a>
             `;
             recipeResultsGrid.appendChild(recipeCard);
         });
 
+        // Show/hide Load More button
         if (currentRecipeStartIndex + recipesPerPage < recipesToDisplay.length) {
             loadMoreRecipesButton.style.display = 'block';
         } else {
@@ -572,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function filterAndSearchRecipes() {
-        currentRecipeStartIndex = 0;
+        currentRecipeStartIndex = 0; // Reset index on new search/filter
         const searchTerm = recipeSearchInput.value.toLowerCase();
         const selectedDiet = dietaryFilter.value;
         const selectedAllergen = allergenFilter.value;
@@ -584,6 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const matchesDiet = selectedDiet === "" || recipe.tags.includes(selectedDiet);
 
+            // Check if recipe contains the selected allergen. If an allergen is selected,
+            // we only want to show recipes that *do not* contain that allergen.
             const hasSelectedAllergen = selectedAllergen !== "" && recipe.allergens.includes(selectedAllergen);
             const matchesAllergen = selectedAllergen === "" || !hasSelectedAllergen;
 
@@ -607,187 +348,148 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loadMoreRecipesButton) {
         loadMoreRecipesButton.addEventListener('click', () => {
             currentRecipeStartIndex += recipesPerPage;
-            renderRecipes(currentFilteredRecipes);
+            renderRecipes(currentFilteredRecipes); // Render more from the already filtered set
         });
     }
 
-    filterAndSearchRecipes();
+    // Initial load of recipes
+    filterAndSearchRecipes(); // Call this to initially populate and set up filtering
 
 
     // 3. Meal Planning (Simulated GenAI Response)
     const generateMealPlanButton = document.querySelector('.generate-meal-plan-button');
-    const mealDietaryPreference = document.getElementById('mealDietaryPreference');
-    const mealGender = document.getElementById('mealGender');
-    const mealActivityLevel = document.getElementById('mealActivityLevel');
-    const mealAdditionalGoals = document.getElementById('mealAdditionalGoals');
+    const mealPreferencesTextarea = document.getElementById('mealPreferences');
     const mealPlanOutputDiv = document.getElementById('mealPlanOutput');
 
     if (generateMealPlanButton) {
         generateMealPlanButton.addEventListener('click', async () => {
-            const dietaryPref = mealDietaryPreference.value;
-            const gender = mealGender.value;
-            const activityLevel = mealActivityLevel.value;
-            const additionalGoals = mealAdditionalGoals.value.trim();
-
+            const preferences = mealPreferencesTextarea.value.trim();
             mealPlanOutputDiv.innerHTML = '<p class="placeholder-text">Generating your personalized meal plan...</p>';
-            showLoading();
+            showLoading(); // Show loading overlay
 
-            // In a real app, you'd send these to your GenAI backend
-            // const payload = { dietaryPref, gender, activityLevel, additionalGoals };
-            // const response = await fetch('/api/generate-meal-plan', { /* ... */ });
+            if (!preferences) {
+                mealPlanOutputDiv.innerHTML = '<p class="placeholder-text error">Please enter your meal preferences to generate a plan.</p>';
+                hideLoading(); // Hide loading overlay
+                return;
+            }
+
+            // Simulate API call to a GenAI backend
+            // In a real application, you would send 'preferences' to your backend
+            // const response = await fetch('/api/generate-meal-plan', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ preferences })
+            // });
             // const data = await response.json();
-            // mealPlanOutputDiv.innerHTML = <pre>${data.mealPlan}</pre>;
+            // mealPlanOutputDiv.textContent = data.mealPlan;
 
+            // --- Dummy GenAI response ---
             setTimeout(() => {
-                let dummyMealPlan = `
-Based on your preferences:
-* *Dietary Preference:* ${dietaryPref}
-* *Gender:* ${gender}
-* *Activity Level:* ${activityLevel}
-`;
-                if (additionalGoals) {
-                    dummyMealPlan += * **Additional Goals:** ${additionalGoals}\n;
-                }
+                const dummyMealPlan = `
+Based on your preference for "${preferences}", here's a sample 3-day meal plan:
 
-                dummyMealPlan += `
-Here's a sample 3-day meal plan tailored for you:
+**Day 1: Mediterranean Delight**
+* **Breakfast:** Greek Yogurt with Berries, Almonds, and a drizzle of Honey.
+* **Lunch:** Large Quinoa Salad with Cucumbers, Tomatoes, Olives, Feta (optional), and Lemon-Herb Vinaigrette.
+* **Dinner:** Baked Salmon with Roasted Asparagus and Sweet Potato.
 
-*Day 1: Balanced & Energizing*
-* *Breakfast:* Oatmeal with berries, chia seeds, and a scoop of ${dietaryPref === 'Vegan' ? 'plant-based protein' : 'whey protein'}.
-* *Lunch:* Large salad with mixed greens, chickpeas, cucumber, tomato, and a light vinaigrette. Add grilled chicken/tofu if not vegetarian.
-* *Dinner:* Baked sweet potato with black beans, corn, and avocado.
+**Day 2: Asian-Inspired Freshness**
+* **Breakfast:** Berry Almond Smoothie Bowl (as seen in our recipes!).
+* **Lunch:** Chicken Lettuce Wraps with a light peanut sauce.
+* **Dinner:** Spicy Tofu and Vegetable Stir-fry (use your preferred protein if no tofu).
 
-*Day 2: Lean & Green*
-* *Breakfast:* Smoothie with spinach, banana, ${dietaryPref === 'Dairy-Free' ? 'almond milk' : 'Greek yogurt'}, and a touch of honey.
-* *Lunch:* Lentil soup (as seen in our recipes!) with a side of whole-grain crackers.
-* *Dinner:* Stir-fry with your choice of lean protein (chicken, shrimp, or tempeh) and plenty of colorful vegetables.
+**Day 3: Hearty & Wholesome**
+* **Breakfast:** Scrambled Eggs with Spinach and Whole Wheat Toast.
+* **Lunch:** Lentil Soup with a side of whole-grain bread.
+* **Dinner:** Lean Ground Turkey Chili with Black Beans and Corn.
 
-*Day 3: Comfort & Nutrients*
-* *Breakfast:* Scrambled eggs (or tofu scramble for vegan) with sautéed mushrooms and whole-wheat toast.
-* *Lunch:* Leftover stir-fry or a hearty vegetable wrap.
-* *Dinner:* Homemade turkey/veg chili with a sprinkle of cheese (optional, based on dairy preference).
-
-*Shopping List Highlights:*
-* Produce: Berries, Spinach, Bananas, Sweet Potatoes, Bell Peppers, Broccoli, Carrots, Cucumbers, Tomatoes, Avocado, Mushrooms, Onions, Garlic.
-* Proteins: Oats, Chia Seeds, ${dietaryPref === 'Vegan' ? 'Plant-based protein powder, Tofu, Tempeh, Lentils, Black Beans' : 'Whey Protein, Chicken Breast, Shrimp, Eggs, Greek Yogurt, Turkey'}.
-* Pantry: Olive Oil, Honey, Whole-grain crackers/bread, Spices, Canned tomatoes.
+**Shopping List Highlights:**
+* Produce: Berries, Almonds, Cucumbers, Tomatoes, Olives, Asparagus, Sweet Potatoes, Bell Peppers, Broccoli, Spinach, Lettuce, Onions, Garlic, Lemons, Herbs.
+* Proteins: Greek Yogurt, Salmon, Chicken Breast/Tofu, Eggs, Lentils, Ground Turkey.
+* Pantry: Quinoa, Olive Oil, Honey, Peanut Butter, Coconut Milk, Spices, Whole Wheat Bread.
 
 Remember to adjust portion sizes to your specific calorie needs and always consult with a healthcare professional for personalized dietary advice.
                 `;
-                mealPlanOutputDiv.innerHTML = <pre>${dummyMealPlan}</pre>;
-                hideLoading();
-            }, 2000);
+                mealPlanOutputDiv.innerHTML = `<pre>${dummyMealPlan}</pre>`; // Use <pre> to preserve line breaks
+                hideLoading(); // Hide loading overlay
+            }, 2000); // Simulate network delay
         });
     }
 
     // 4. Healthy Food Swaps (Simulated GenAI Response)
     const getSwapSuggestionButton = document.getElementById('getSwapSuggestionButton');
-    const swapItemSelect = document.getElementById('swapItemSelect');
+    const swapSuggestionInput = document.getElementById('swapSuggestionInput');
     const genaiSwapOutputDiv = document.getElementById('genaiSwapOutput');
 
     if (getSwapSuggestionButton) {
         getSwapSuggestionButton.addEventListener('click', async () => {
-            const selectedItem = swapItemSelect.value;
+            const query = swapSuggestionInput.value.trim();
             genaiSwapOutputDiv.innerHTML = '<p class="placeholder-text">Searching for healthy swap suggestions...</p>';
-            showLoading();
+            showLoading(); // Show loading overlay
 
-            if (!selectedItem) {
-                genaiSwapOutputDiv.innerHTML = '<p class="placeholder-text error">Please select an item to get a swap suggestion.</p>';
-                hideLoading();
+            if (!query) {
+                genaiSwapOutputDiv.innerHTML = '<p class="placeholder-text error">Please enter an ingredient or dish to get a swap suggestion.</p>';
+                hideLoading(); // Hide loading overlay
                 return;
             }
 
-            // In a real app, you'd send this to your GenAI backend
-            // const payload = { query: selectedItem };
-            // const response = await fetch('/api/get-food-swap', { /* ... */ });
+            // Simulate API call to a GenAI backend
+            // const response = await fetch('/api/get-food-swap', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({ query })
+            // });
             // const data = await response.json();
-            // genaiSwapOutputDiv.innerHTML = <pre>${data.swapSuggestion}</pre>;
+            // genaiSwapOutputDiv.textContent = data.swapSuggestion;
 
+            // --- Dummy GenAI response ---
             setTimeout(() => {
                 let swapResult = '';
-                switch (selectedItem) {
-                    case 'White Rice':
-                        swapResult = `For "White Rice," consider:
-* *Quinoa:* Complete protein, high in fiber.
-* *Brown Rice:* More fiber and nutrients than white rice.
-* *Cauliflower Rice:* Low-carb, low-calorie veggie alternative.`;
-                        break;
-                    case 'Sugary Sodas':
-                        swapResult = `For "Sugary Sodas," try:
-* *Sparkling Water with Fruit:* Refreshing and sugar-free.
-* *Unsweetened Iced Tea:* A flavorful, low-calorie option.
-* *Kombucha:* Probiotic-rich fermented tea (check sugar content).`;
-                        break;
-                    case 'Mayonnaise':
-                        swapResult = `For "Mayonnaise," swap with:
-* *Avocado Mash:* Healthy fats, creamy texture.
-* *Hummus:* Adds protein and fiber.
-* *Greek Yogurt:* Lower fat, higher protein (for savory dishes).`;
-                        break;
-                    case 'Sour Cream':
-                        swapResult = `For "Sour Cream," opt for:
-* *Greek Yogurt:* High in protein, lower in fat.
-* *Cashew Cream:* Dairy-free, creamy alternative.`;
-                        break;
-                    case 'White Bread':
-                        swapResult = `For "White Bread," choose:
-* *Whole Wheat Bread:* More fiber and nutrients.
-* *Lettuce Wraps:* Low-carb, crunchy alternative.
-* *Ezekiel Bread:* Sprouted grain bread, highly nutritious.`;
-                        break;
-                    case 'Potato Chips':
-                        swapResult = `For "Potato Chips," snack on:
-* *Air-popped Popcorn:* Whole grain, good source of fiber.
-* *Baked Kale Chips:* Crispy, nutritious, and easy to make.
-* *Sliced Cucumbers or Carrots with Hummus:* Crunchy and packed with nutrients.`;
-                        break;
-                    case 'Processed Snacks':
-                        swapResult = `Instead of "Processed Snacks," go for:
-* *Fresh Fruit:* Natural sweetness, vitamins, fiber.
-* *A Handful of Nuts/Seeds:* Healthy fats, protein.
-* *Vegetable Sticks with Hummus:* Crunchy and nutritious.`;
-                        break;
-                    case 'Fried Chicken':
-                        swapResult = `Instead of "Fried Chicken," try:
-* *Grilled Chicken:* Significantly lower in fat and calories.
-* *Baked Chicken:* Another healthier cooking method.
-* *Air-Fried Chicken:* Can give a crispy texture with less oil.`;
-                        break;
-                    case 'Milk Chocolate':
-                        swapResult = `For "Milk Chocolate," consider:
-* *Dark Chocolate (70%+ cacao):* Lower sugar, more antioxidants.
-* *Cacao Nibs:* Pure chocolate flavor, no added sugar.
-* *Fruit:* Satisfy sweet cravings naturally.`;
-                        break;
-                    case 'Sugar':
-                        swapResult = `For "Sugar" in recipes, try:
-* *Stevia or Erythritol:* Natural, zero-calorie sweeteners.
-* *Maple Syrup or Honey:* Natural sweeteners (use in moderation).
-* *Mashed Banana or Applesauce:* Can replace sugar and add moisture in baking.`;
-                        break;
-                    case 'Butter':
-                        swapResult = `For "Butter" in cooking/baking:
-* *Avocado (mashed):* Healthy fats, good for baking.
-* *Applesauce:* A fat replacer in baking, adds moisture.
-* *Olive Oil:* Great for savory dishes, but changes flavor in baking.`;
-                        break;
-                    case 'Cream Cheese':
-                        swapResult = `For "Cream Cheese," try:
-* *Greek Yogurt (strained):* Similar tang and creaminess, higher protein.
-* *Cashew Cream:* Dairy-free, great for dips and spreads.
-* *Ricotta Cheese (light):* Lower fat, still creamy.`;
-                        break;
-                    case 'Ground Beef':
-                        swapResult = `For "Ground Beef," opt for:
-* *Lean Ground Turkey/Chicken:* Lower in saturated fat.
-* *Lentils or Mushrooms:* Excellent plant-based alternatives for texture and protein.`;
-                        break;
-                    default:
-                        swapResult = Please select an item from the dropdown to get a healthy swap suggestion.;
+                if (query.toLowerCase().includes('pasta')) {
+                    swapResult = `For "pasta," consider these healthy swaps:
+* **Zucchini Noodles (Zoodles):** A great low-carb, vegetable-based alternative.
+* **Spaghetti Squash:** A natural, low-calorie, and fiber-rich option.
+* **Whole Wheat or Lentil Pasta:** If you want to stick to pasta, these offer more fiber and protein.
+* **Shirataki Noodles:** Very low in calories and carbs, often used in Asian cuisine.`;
+                } else if (query.toLowerCase().includes('sugar')) {
+                    swapResult = `For "sugar" in recipes, consider:
+* **Stevia or Erythritol:** Natural, zero-calorie sweeteners.
+* **Maple Syrup or Honey:** Natural sweeteners (use in moderation, still sugars).
+* **Mashed Banana or Applesauce:** Can replace sugar and add moisture in baking.`;
+                } else if (query.toLowerCase().includes('butter')) {
+                    swapResult = `For "butter" in cooking/baking:
+* **Avocado:** Can be mashed and used as a healthy fat replacement in baking.
+* **Applesauce:** A fat replacer in baking, adds moisture.
+* **Coconut Oil:** A plant-based alternative, but still high in saturated fat.
+* **Olive Oil:** Great for savory dishes, but changes flavor profile in baking.`;
+                } else if (query.toLowerCase().includes('soda')) {
+                    swapResult = `Instead of "soda", try:
+* **Sparkling Water with Lemon/Lime:** Refreshing and sugar-free.
+* **Unsweetened Iced Tea:** A flavorful, low-calorie option.
+* **Fruit-infused Water:** Add slices of cucumber, mint, berries for natural flavor.`;
+                } else if (query.toLowerCase().includes('chips')) {
+                    swapResult = `Instead of "chips", try:
+* **Air-popped Popcorn:** Whole grain, high in fiber.
+* **Baked Kale Chips:** Crispy, nutritious, and easy to make.
+* **Sliced Cucumbers or Carrots with Hummus:** Crunchy and packed with nutrients.`;
                 }
-                genaiSwapOutputDiv.innerHTML = <pre>${swapResult}</pre>;
-                hideLoading();
-            }, 1500);
+                else {
+                    swapResult = `Our GenAI is thinking... For "${query}", a common healthy swap could be:
+* **[Original Food]** <i class="fas fa-exchange-alt"></i> **[Healthier Alternative]**
+    * **Reason:** [Brief explanation of benefits].
+
+Please ask me for more specific items like 'soda', 'chips', 'milk chocolate', 'white bread', etc.`;
+                }
+                genaiSwapOutputDiv.innerHTML = `<pre>${swapResult}</pre>`;
+                hideLoading(); // Hide loading overlay
+            }, 1500); // Simulate network delay
         });
     }
+
+    // --- General Nutritional Tips (already static in HTML, no JS needed for display) ---
+
+    // --- Allergy Alerts (Integrated into Recipe Finder for this version) ---
+    // The recipe cards now show allergy alerts dynamically based on the dummy data.
+    // In a real system, user would input their allergies, and the AI would filter/warn.
+
 });
